@@ -1,0 +1,61 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### Runtime / local secrets ###
+.env
+.env.*
+!.env.example
+.git.backup-before-public
+.git.backup-before-public/
+.opencode/
+*.log
+*log*.txt
+uploads/
+**/uploads/
+natapp.exe
+natapp.zip
+
+### IntelliJ IDEA ###
+.idea/
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/compiler.xml
+.idea/libraries/
+*.iws
+*.iml
+*.ipr
+
+### Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+
+### Mac OS ###
+.DS_Store
+
+### Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+
+### Local documentation package ###
+docs/

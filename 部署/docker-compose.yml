@@ -1,0 +1,264 @@
+name: 404-shop
+
+services:
+  # ============================================
+  # 基础设施
+  # ============================================
+  mysql:
+    image: mysql:8.0
+    container_name: shop-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-1234}
+    ports:
+      - "3307:3306"
+    volumes:
+      - ../database-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mysql-data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: shop-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: shop-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD:-admin}
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  nacos:
+    image: nacos/nacos-server:v2.2.3
+    container_name: shop-nacos
+    platform: linux/amd64
+    ports:
+      - "8848:8848"
+    environment:
+      MODE: standalone
+      PREFER_HOST_MODE: hostname
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+
+  minio:
+    image: minio/minio:RELEASE.2024-07-16T23-46-41Z
+    container_name: shop-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-minioadmin}
+    ports:
+      - "9100:9000"
+      - "9101:9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # ============================================
+  # 微服务
+  # ============================================
+  user-service:
+    build:
+      context: ..
+      dockerfile: user/Dockerfile
+    container_name: shop-user
+    ports:
+      - "9001:9001"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      NACOS_ADDR: ${NACOS_ADDR:-nacos:8848}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PWD: ${DB_PWD:-1234}
+      JWT_SECRET: ${JWT_SECRET:-change-me-jwt-secret-local-demo-only}
+      MAIL_HOST: ${MAIL_HOST:-smtp.example.com}
+      MAIL_USERNAME: ${MAIL_USERNAME:-change-me@example.com}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-change-me}
+      MAIL_FROM: ${MAIL_FROM:-change-me@example.com}
+      APP_UPLOAD_STORAGE: ${APP_UPLOAD_STORAGE:-minio}
+      PUBLIC_UPLOAD_BASE_URL: ${PUBLIC_UPLOAD_BASE_URL:-http://localhost:8090/uploads/avatar/}
+      QINIU_DOMAIN: ${QINIU_DOMAIN:-}
+      QINIU_ACCESS_KEY: ${QINIU_ACCESS_KEY:-}
+      QINIU_SECRET_KEY: ${QINIU_SECRET_KEY:-}
+      QINIU_BUCKET: ${QINIU_BUCKET:-}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin}
+      MINIO_BUCKET: ${MINIO_BUCKET:-404-shop}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-http://localhost:9100}
+
+  product-service:
+    build:
+      context: ..
+      dockerfile: product/Dockerfile
+    container_name: shop-product
+    ports:
+      - "9002:9002"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    environment:
+      NACOS_ADDR: ${NACOS_ADDR:-nacos:8848}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      RABBIT_HOST: ${RABBIT_HOST:-rabbitmq}
+      RABBIT_USER: ${RABBIT_USER:-admin}
+      RABBIT_PASSWORD: ${RABBIT_PASSWORD:-admin}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PWD: ${DB_PWD:-1234}
+      JWT_SECRET: ${JWT_SECRET:-change-me-jwt-secret-local-demo-only}
+      QINIU_DOMAIN: ${QINIU_DOMAIN:-}
+      QINIU_ACCESS_KEY: ${QINIU_ACCESS_KEY:-}
+      QINIU_SECRET_KEY: ${QINIU_SECRET_KEY:-}
+      QINIU_BUCKET: ${QINIU_BUCKET:-}
+
+  coupon-service:
+    build:
+      context: ..
+      dockerfile: coupon/Dockerfile
+    container_name: shop-coupon
+    ports:
+      - "9004:9004"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    environment:
+      NACOS_ADDR: ${NACOS_ADDR:-nacos:8848}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      RABBIT_HOST: ${RABBIT_HOST:-rabbitmq}
+      RABBIT_USER: ${RABBIT_USER:-admin}
+      RABBIT_PASSWORD: ${RABBIT_PASSWORD:-admin}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PWD: ${DB_PWD:-1234}
+      JWT_SECRET: ${JWT_SECRET:-change-me-jwt-secret-local-demo-only}
+      QINIU_DOMAIN: ${QINIU_DOMAIN:-}
+      QINIU_ACCESS_KEY: ${QINIU_ACCESS_KEY:-}
+      QINIU_SECRET_KEY: ${QINIU_SECRET_KEY:-}
+      QINIU_BUCKET: ${QINIU_BUCKET:-}
+
+  order-service:
+    build:
+      context: ..
+      dockerfile: order/Dockerfile
+    container_name: shop-order
+    ports:
+      - "9003:9003"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      nacos:
+        condition: service_healthy
+    environment:
+      NACOS_ADDR: ${NACOS_ADDR:-nacos:8848}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      RABBIT_HOST: ${RABBIT_HOST:-rabbitmq}
+      RABBIT_USER: ${RABBIT_USER:-admin}
+      RABBIT_PASSWORD: ${RABBIT_PASSWORD:-admin}
+      DB_HOST: ${DB_HOST:-mysql}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-root}
+      DB_PWD: ${DB_PWD:-1234}
+      JWT_SECRET: ${JWT_SECRET:-change-me-jwt-secret-local-demo-only}
+      QINIU_DOMAIN: ${QINIU_DOMAIN:-}
+      QINIU_ACCESS_KEY: ${QINIU_ACCESS_KEY:-}
+      QINIU_SECRET_KEY: ${QINIU_SECRET_KEY:-}
+      QINIU_BUCKET: ${QINIU_BUCKET:-}
+      ALIPAY_SERVER_URL: ${ALIPAY_SERVER_URL:-https://openapi-sandbox.dl.alipaydev.com/gateway.do}
+      ALIPAY_APP_ID: ${ALIPAY_APP_ID:-}
+      ALIPAY_PRIVATE_KEY: ${ALIPAY_PRIVATE_KEY:-}
+      ALIPAY_PUBLIC_KEY: ${ALIPAY_PUBLIC_KEY:-}
+      ALIPAY_NOTIFY_URL: ${ALIPAY_NOTIFY_URL:-http://localhost:9003/api/callback/v1/alipay}
+      ALIPAY_RETURN_URL: ${ALIPAY_RETURN_URL:-http://localhost:5173/user/orders}
+
+  gateway:
+    build:
+      context: ..
+      dockerfile: gateway/Dockerfile
+    container_name: shop-gateway
+    ports:
+      - "8090:8090"
+    depends_on:
+      nacos:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      product-service:
+        condition: service_started
+      coupon-service:
+        condition: service_started
+      order-service:
+        condition: service_started
+    environment:
+      NACOS_ADDR: ${NACOS_ADDR:-nacos:8848}
+      USER_UPLOAD_URI: http://user-service:9001
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8090}
+    container_name: shop-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - gateway
+
+volumes:
+  mysql-data:
+  minio-data:
