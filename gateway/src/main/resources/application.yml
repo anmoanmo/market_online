@@ -1,0 +1,56 @@
+server:
+  port: 8090
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+      routes:
+        - id: product_route
+          uri: lb://product-service
+          order: 1
+          predicates:
+            - Path=/product-service/**
+          filters:
+            - StripPrefix=1
+
+        - id: user_route
+          uri: lb://user-service
+          order: 2
+          predicates:
+            - Path=/user-service/**
+          filters:
+            - StripPrefix=1
+
+        - id: coupon_route
+          uri: lb://coupon-service
+          order: 3
+          predicates:
+            - Path=/coupon-service/**
+          filters:
+            - StripPrefix=1
+
+        - id: order_route
+          uri: lb://order-service
+          order: 4
+          predicates:
+            - Path=/order-service/**
+          filters:
+            - StripPrefix=1
+
+        - id: upload_route
+          uri: ${USER_UPLOAD_URI:http://127.0.0.1:9001}
+          order: 5
+          predicates:
+            - Path=/uploads/**

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.buka</groupId>
+        <artifactId>404-shop</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>coupon</artifactId>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+<dependencies>
+    <dependency>
+        <groupId>com.buka</groupId>
+        <artifactId>common</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </dependency>
+    <!--分布式锁-->
+    <dependency>
+        <groupId>org.redisson</groupId>
+        <artifactId>redisson</artifactId>
+        <version>3.10.1</version>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-commons</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>org.springframework.amqp</groupId>
+        <artifactId>spring-amqp</artifactId>
+    </dependency>
+    <!--    &lt;!&ndash;alibaba微服务整合分布式事务，上面的方式不行  mvn 包冲突&ndash;&gt;-->
+<!--    <dependency>-->
+<!--        <groupId>com.alibaba.cloud</groupId>-->
+<!--        <artifactId>spring-cloud-starter-alibaba-seata</artifactId>-->
+<!--    </dependency>-->
+
+
+<!--    &lt;!&ndash;alibaba微服务整合分布式事务，这个方式才行&ndash;&gt;-->
+<!--    <dependency>-->
+<!--        <groupId>com.alibaba.cloud</groupId>-->
+<!--        <artifactId>spring-cloud-starter-alibaba-seata</artifactId>-->
+<!--        <exclusions>-->
+<!--            <exclusion>-->
+<!--                <groupId>io.seata</groupId>-->
+<!--                <artifactId>seata-spring-boot-starter</artifactId>-->
+<!--            </exclusion>-->
+<!--        </exclusions>-->
+<!--    </dependency>-->
+<!--    <dependency>-->
+<!--        <groupId>io.seata</groupId>-->
+<!--        <artifactId>seata-spring-boot-starter</artifactId>-->
+<!--        <version>1.3.0</version>-->
+<!--    </dependency>-->
+</dependencies>
+</project>
