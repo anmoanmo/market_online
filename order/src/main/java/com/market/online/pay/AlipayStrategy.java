@@ -62,6 +62,8 @@ public class AlipayStrategy implements PayStrategy {
 
             // 设置订单标题
             model.setSubject(payInfoVO.getTitle());
+            // 手机网站支付接口要求固定使用 QUICK_WAP_WAY。
+            model.setProductCode("QUICK_WAP_WAY");
             LocalDateTime currentTime = LocalDateTime.now();
 
             LocalDateTime newTime = currentTime.plus(30, ChronoUnit.MINUTES);
@@ -84,13 +86,10 @@ public class AlipayStrategy implements PayStrategy {
             // 如果需要返回GET请求，请使用
             // AlipayTradeWapPayResponse response = alipayClient.pageExecute(request, "GET");
             pageRedirectionData = response.getBody();
-            System.out.println("----------");
-            System.out.println(pageRedirectionData);
-            System.out.println("----------");
             if (response.isSuccess()) {
-                System.out.println("调用成功");
+                log.info("支付宝支付表单生成成功, outTradeNo={}", payInfoVO.getOutTradeNo());
             } else {
-                System.out.println("调用失败");
+                log.warn("支付宝支付表单生成失败, outTradeNo={}, msg={}", payInfoVO.getOutTradeNo(), response.getMsg());
             }
 
 
